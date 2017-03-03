@@ -1,0 +1,3 @@
+{
+	"PG": "postgres://cdecmatcher:cdec@localhost:5432/cdecmatcher"
+}
