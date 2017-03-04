@@ -8,12 +8,11 @@ import * as DB from "./libs/DB";
 let app = express();
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
-app.use('/static', express.static('public'));
 
 // respond with "hello world" when a GET request is made to the homepage
-app.get('/', function (req, res) {
-    res.send('hello world');
-});
+//app.get('/', function (req, res) {
+//    res.send('hello world');
+//});
 
 app.get('/api/score', async function (req, res) {
     let sql = `SELECT id, name, description, score, head, times,
@@ -198,8 +197,10 @@ app.post('/api/match/record', async function (req, res) {
 
 });
 
+app.use('/', express.static('public'));
+
 app.use(function (req, res, next) {
-    res.status(404).send('Sorry cant find that!');
+    res.status(404);
 });
 
 app.listen("8080");

@@ -1,6 +1,6 @@
 "use strict";
 function requestScoreAndFill() {
-    let url = "/api/score";
+    let url = "/cdec/api/score";
     $.get(url, function (response) {
         let index = 0;
         for (let item of response.data) {

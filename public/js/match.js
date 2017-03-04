@@ -2,7 +2,7 @@
 let participant_data = {};
 let participant_ids_picked = [];
 function requestScoreAndFill() {
-    let url = "/api/score";
+    let url = "/cdec/api/score";
     $.get(url, function (response) {
         for (let item of response.data) {
             participant_data[item.id] = item;
@@ -49,7 +49,7 @@ function GroupAnimation() {
 }
 
 function startGroupBtnClick() {
-    let url = "/api/match/group";
+    let url = "/cdec/api/match/group";
     let thumbnail = "?imageMogr2/auto-orient/thumbnail/128x128!/blur/1x0/quality/100";
     let data = {list: JSON.stringify(participant_ids_picked)};
     $.post(url, data, function (response) {
