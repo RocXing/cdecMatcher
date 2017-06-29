@@ -1,4 +1,4 @@
 # cdecMatcher
-## npm install
-## tsc
-## node app.js
+### npm install
+### tsc
+### node app.js
