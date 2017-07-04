@@ -3,6 +3,7 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import * as multer from "multer";
+import * as moment from "moment";
 import * as DB from "./libs/DB";
 
 let app = express();
@@ -75,6 +76,9 @@ app.get('/api/participant/score', async function (req, res) {
     let param = userId ? userId : userName;
     let result = await DB.queryAsync(sql, param);
     let ret = result.rows.length ? result.rows : [];
+    for (let row of ret) {
+        row.time = moment(row.time).format("YYYY/MM/DD HH:mm");
+    }
     return res.json({status: 0, message: "success", data: ret}).end();
 });
 
@@ -86,6 +90,41 @@ app.post('/api/participant/add', async function (req, res) {
     let sql = `INSERT INTO cdec_participant(name, description, score) VALUES ($1, $2, $3) RETURNING 1`;
     let result = await DB.queryAsync(sql, [name, description, score]);
     return res.json({status: 0, message: "success"}).end();
+});
+
+app.get('/api/match/detail', async function (req, res) {
+    let matchId = req.query.id;
+    if (!matchId) {
+        return res.json({status: -1, message: "bad parameters"}).end();
+    }
+
+    let sql = `
+        SELECT
+            cdec_participant."name", team, delta, "result", "valid", time
+        FROM
+            (
+                SELECT *  FROM cdec_match WHERE ID = $1
+            ) AS MATCH
+        LEFT JOIN cdec_match_relation ON MATCH . ID = cdec_match_relation.match_id
+        LEFT JOIN cdec_participant ON cdec_match_relation.participant_id = cdec_participant."id"
+        ORDER BY team ASC
+    `;
+    let result = await DB.queryAsync(sql, matchId);
+
+    if (!result.rows.length) {
+        return res.json({status: -1, message: "the match does not exist"}).end();
+    }
+
+    let ret = {
+        time: moment(result.rows[0].time).format("YYYY/MM/DD HH:mm"),
+        radiant: {delta: result.rows[0].delta, result: result.rows[0].result, players: []},
+        dire: {delta: result.rows[5].delta, result: result.rows[5].time, players: []}
+    };
+
+    for (let row of result.rows) {
+        row.team ? ret.dire.players.push(row.name) : ret.radiant.players.push(row.name);
+    }
+    return res.json({status: 0, message: "success", data: ret}).end();
 });
 
 app.post('/api/match/group', async function (req, res) {
