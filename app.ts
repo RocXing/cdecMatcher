@@ -37,6 +37,47 @@ app.get('/api/score', async function (req, res) {
     return res.json({status: 0, message: "success", data: ret}).end();
 });
 
+app.get('/api/participant/score', async function (req, res) {
+    let userId = req.query.id;
+    let userName = req.query.name;
+    if (!userId && !userName) {
+        return res.json({status: -1, message: "bad parameters"}).end();
+    }
+
+    let nameSql = `SELECT
+                        Delta.match_id, Delta."result", Delta.delta,
+                        Delta.team, cdec_match."time"
+                    FROM
+                        (
+                            SELECT * FROM cdec_match_relation
+                            WHERE delta IS NOT NULL
+                            AND cdec_match_relation."participant_id" = (
+                                SELECT ID FROM cdec_participant
+                                WHERE NAME = $1
+                            )
+                        ) AS Delta
+                    LEFT JOIN cdec_match ON cdec_match."id" = Delta.match_id
+                    WHERE "valid" = TRUE ORDER BY TIME DESC`;
+
+    let idSql = `SELECT
+                    Delta.match_id, Delta."result", Delta.delta,
+                    Delta.team, cdec_match."time"
+                FROM
+                    (
+                        SELECT * FROM cdec_match_relation
+                        WHERE delta IS NOT NULL
+                        AND cdec_match_relation."participant_id" = $1
+                    ) AS Delta
+                LEFT JOIN cdec_match ON cdec_match."id" = Delta.match_id
+                WHERE "valid" = TRUE ORDER BY TIME DESC`;
+
+    let sql = userId ? idSql : nameSql;
+    let param = userId ? userId : userName;
+    let result = await DB.queryAsync(sql, param);
+    let ret = result.rows.length ? result.rows : [];
+    return res.json({status: 0, message: "success", data: ret}).end();
+});
+
 app.post('/api/participant/add', async function (req, res) {
     let name = req.body.name;
     let score = req.body.score;
