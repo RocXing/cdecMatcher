@@ -39,26 +39,10 @@ app.get('/api/score', async function (req, res) {
 });
 
 app.get('/api/participant/score', async function (req, res) {
-    let userId = req.query.id;
-    let userName = req.query.name;
-    if (!userId && !userName) {
+    let userId = req.query.user_id;
+    if (!userId) {
         return res.json({status: -1, message: "bad parameters"}).end();
     }
-
-    let nameSql = `SELECT
-                        Delta.match_id, Delta."result", Delta.delta,
-                        Delta.team, cdec_match."time"
-                    FROM
-                        (
-                            SELECT * FROM cdec_match_relation
-                            WHERE delta IS NOT NULL
-                            AND cdec_match_relation."participant_id" = (
-                                SELECT ID FROM cdec_participant
-                                WHERE NAME = $1
-                            )
-                        ) AS Delta
-                    LEFT JOIN cdec_match ON cdec_match."id" = Delta.match_id
-                    WHERE "valid" = TRUE ORDER BY TIME DESC`;
 
     let idSql = `SELECT
                     Delta.match_id, Delta."result", Delta.delta,
@@ -72,11 +56,36 @@ app.get('/api/participant/score', async function (req, res) {
                 LEFT JOIN cdec_match ON cdec_match."id" = Delta.match_id
                 WHERE "valid" = TRUE ORDER BY TIME DESC`;
 
-    let sql = userId ? idSql : nameSql;
-    let param = userId ? userId : userName;
-    let result = await DB.queryAsync(sql, param);
-    let ret = result.rows.length ? result.rows : [];
-    for (let row of ret) {
+    let userSql = `SELECT id, name, description, score, head, times,
+                CASE WHEN win IS NULL THEN 0 ELSE win END
+                FROM
+                    cdec_participant LEFT JOIN
+                    (
+                        SELECT
+                            COUNT (*) AS win,
+                            participant_id
+                        FROM
+                            cdec_match_relation
+                        WHERE
+                            "result" IS TRUE
+                        GROUP BY participant_id
+                    ) AS R
+                ON R.participant_id = cdec_participant. ID WHERE id = $1;            
+                `;
+
+    let result = await DB.queryAsync(idSql, userId);
+    let userInfo = await DB.queryAsync(userSql, userId);
+    let ret = {
+        id: userInfo.rows[0].id,
+        name: userInfo.rows[0].name,
+        description: userInfo.rows[0].description,
+        score: userInfo.rows[0].score,
+        head: userInfo.rows[0].head,
+        win: userInfo.rows[0].win,
+        times: userInfo.rows[0].times,
+        matches: result.rows.length ? result.rows : []
+    };
+    for (let row of ret.matches) {
         row.time = moment(row.time).format("YYYY/MM/DD HH:mm");
     }
     return res.json({status: 0, message: "success", data: ret}).end();
@@ -291,6 +300,6 @@ app.use(function (req, res, next) {
     res.status(404);
 });
 
-if(process.env.NODE_ENV =='dev')
+if (process.env.NODE_ENV == 'dev')
     app.listen("8081");
 else app.listen("8080");

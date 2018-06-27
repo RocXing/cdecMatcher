@@ -1,0 +1,53 @@
+body {
+    margin-top: 0;
+    padding: 0;
+}
+
+#header {
+    margin: 10px 10px;
+}
+
+.panel {
+    width: 80%;
+    margin: 20px auto 20px auto;
+}
+
+#main_panel {
+    width: 80%;
+    margin: 20px auto 20px auto;
+}
+
+.participant_info {
+    margin-top: 20px;
+    width: 15%;
+    display: inline-block;
+    font-weight: bold;
+    float: left;
+}
+
+.participant_info div {
+    font-size: medium;
+    text-align: center;
+}
+
+.participant_info img {
+    width: 100%;
+    margin: 0 auto;
+}
+
+#score_panel {
+    float: right;
+}
+
+#score_table {
+    width: 100%;
+}
+
+#score_table td {
+    vertical-align: middle;
+}
+
+#score_table td img {
+    width: 32px;
+    height: 32px;
+}
