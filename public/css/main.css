@@ -3,6 +3,16 @@ body {
     padding: 0;
 }
 
+a {
+    color: #333;
+    text-decoration: none;
+}
+
+a:focus, a:hover {
+    color: #333;
+    text-decoration: none;
+}
+
 #header {
     margin: 10px 10px;
 }
@@ -16,11 +26,11 @@ body {
     width: 100%;
 }
 
-#score_table td{
+#score_table td {
     vertical-align: middle;
 }
 
-#score_table td img{
+#score_table td img {
     width: 32px;
     height: 32px;
 }
