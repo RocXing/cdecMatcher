@@ -93,21 +93,21 @@ app.post('/api/participant/add', async function (req, res) {
 });
 
 app.get('/api/match/detail', async function (req, res) {
-    let matchId = req.query.id;
+    let matchId = req.query.match_id;
     if (!matchId) {
         return res.json({status: -1, message: "bad parameters"}).end();
     }
 
     let sql = `
         SELECT
-            cdec_participant."name", team, delta, "result", "valid", time
+            cdec_participant."name", cdec_participant.head, cdec_participant.score, cdec_participant."id" AS "participant_id", MATCH."id", team, delta, "result", "valid", time
         FROM
             (
                 SELECT *  FROM cdec_match WHERE ID = $1
             ) AS MATCH
         LEFT JOIN cdec_match_relation ON MATCH . ID = cdec_match_relation.match_id
         LEFT JOIN cdec_participant ON cdec_match_relation.participant_id = cdec_participant."id"
-        ORDER BY team ASC
+        ORDER BY team ASC;
     `;
     let result = await DB.queryAsync(sql, matchId);
 
@@ -116,13 +116,21 @@ app.get('/api/match/detail', async function (req, res) {
     }
 
     let ret = {
+        id: result.rows[0].id,
+        valid: result.rows[0].valid,
         time: moment(result.rows[0].time).format("YYYY/MM/DD HH:mm"),
         radiant: {delta: result.rows[0].delta, result: result.rows[0].result, players: []},
-        dire: {delta: result.rows[5].delta, result: result.rows[5].time, players: []}
+        dire: {delta: result.rows[5].delta, result: result.rows[5].result, players: []}
     };
 
     for (let row of result.rows) {
-        row.team ? ret.dire.players.push(row.name) : ret.radiant.players.push(row.name);
+        let players = row.team ? ret.dire.players : ret.radiant.players;
+        players.push({
+            id: row.participant_id,
+            name: row.name,
+            score: row.score,
+            head: row.head
+        });
     }
     return res.json({status: 0, message: "success", data: ret}).end();
 });
@@ -133,7 +141,7 @@ app.post('/api/match/group', async function (req, res) {
         return res.json({status: -1, message: "bad parameters"}).end();
     }
 
-    let sql = `SELECT * FROM cdec_participant WHERE id IN (${idList.map(id=> {
+    let sql = `SELECT * FROM cdec_participant WHERE id IN (${idList.map(id => {
         return "'" + id + "'";
     }).join(',')})`;
     let result = await DB.queryAsync(sql);
@@ -262,12 +270,12 @@ app.post('/api/match/record', async function (req, res) {
     await DB.queryAsync(sql, [matchId]);
 
     console.log(radiantParticipantIds);
-    sql = `UPDATE cdec_participant SET times = times + 1, score = score + $1 WHERE id IN (${radiantParticipantIds.map(id=> {
+    sql = `UPDATE cdec_participant SET times = times + 1, score = score + $1 WHERE id IN (${radiantParticipantIds.map(id => {
         return "'" + id + "'"
     }).join(",")})`;
     await DB.queryAsync(sql, [radiantDelta]);
 
-    sql = `UPDATE cdec_participant SET times = times + 1, score = score + $1 WHERE id IN (${direParticipantIds.map(id=> {
+    sql = `UPDATE cdec_participant SET times = times + 1, score = score + $1 WHERE id IN (${direParticipantIds.map(id => {
         return "'" + id + "'"
     }).join(",")})`;
     await DB.queryAsync(sql, [direDelta]);
@@ -283,4 +291,6 @@ app.use(function (req, res, next) {
     res.status(404);
 });
 
-app.listen("8080");
+if(process.env.NODE_ENV =='dev')
+    app.listen("8081");
+else app.listen("8080");
